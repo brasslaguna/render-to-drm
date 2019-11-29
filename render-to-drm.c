@@ -148,7 +148,7 @@ static void swap_buffers () {
 
 static void draw (float progress) {
 
-  glClearColor (1.0f-progress, progress, 0.0, 1.0);
+  glClearColor (1.0f - progress, progress / 2.0f, progress, 1.0);
   glClear (GL_COLOR_BUFFER_BIT);
   swap_buffers ();
 
@@ -174,7 +174,60 @@ static int match_config_to_visual(EGLDisplay egl_display, EGLint visual_id, EGLC
 
 }
 
+static void clean_up() {
+
+  /*
+    
+    Set the previous CRTC
+
+  */
+
+  drmModeSetCrtc(
+    device, 
+    crtc->crtc_id, 
+    crtc->buffer_id, 
+    crtc->x, crtc->y, 
+    &connector_id, 
+    1, 
+    &crtc->mode
+  );
+
+  drmModeFreeCrtc (crtc);
+
+  if (previous_bo) {
+
+    drmModeRmFB (device, previous_fb);
+    gbm_surface_release_buffer (gbm_surface, previous_bo);
+  
+  }
+
+  eglDestroySurface (display, egl_surface);
+  gbm_surface_destroy (gbm_surface);
+  eglDestroyContext (display, context);
+  eglTerminate (display);
+  gbm_device_destroy (gbm_device);
+
+  close (device);
+
+}
+
+void signal_handler(int signal) {
+
+  clean_up();
+
+  exit(0);
+
+}
+
 int main () {
+
+  /*
+  
+    close program on interruption
+
+  */
+
+  signal(SIG_INT, signal_handler);
 
   /*
 
@@ -296,48 +349,22 @@ int main () {
 
   */
 
-  for (i = 0; i < 600; i++) 
+  float i = 0.0f,
+        max = 1000.0f;
 
-    draw (i / 600.0f);
+  while(1) {
 
-  /*
-    
-    Set the previous CRTC
+    draw (i / max);
 
-  */
+    i++;
 
-  drmModeSetCrtc(
-    device, 
-    crtc->crtc_id, 
-    crtc->buffer_id, 
-    crtc->x, crtc->y, 
-    &connector_id, 
-    1, 
-    &crtc->mode
-  );
+    if(i < max)
 
-  drmModeFreeCrtc (crtc);
+      i = 0.0f;
 
-  /*
-    
-    Clean up
-
-  */
-
-  if (previous_bo) {
-
-    drmModeRmFB (device, previous_fb);
-    gbm_surface_release_buffer (gbm_surface, previous_bo);
-  
   }
 
-  eglDestroySurface (display, egl_surface);
-  gbm_surface_destroy (gbm_surface);
-  eglDestroyContext (display, context);
-  eglTerminate (display);
-  gbm_device_destroy (gbm_device);
-
-  close (device);
+  clean_up();
 
   return 0;
 
