@@ -8,8 +8,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
+#include <math.h>
 
 #define EXIT(msg) { fputs (msg, stderr); exit (EXIT_FAILURE); }
+
+#define PI 3.14159265
 
 // global variables declarations
 
@@ -148,7 +152,7 @@ static void swap_buffers () {
 
 static void draw (float progress) {
 
-  glClearColor (1.0f - progress, progress / 2.0f, progress, 1.0);
+  glClearColor (progress / 2.0f, 0.6f, progress + 0.2f, 1.0);
   glClear (GL_COLOR_BUFFER_BIT);
   swap_buffers ();
 
@@ -227,7 +231,7 @@ int main () {
 
   */
 
-  signal(SIG_INT, signal_handler);
+  signal(SIGINT, signal_handler);
 
   /*
 
@@ -350,15 +354,17 @@ int main () {
   */
 
   float i = 0.0f,
-        max = 1000.0f;
+        max = 2400.0f;
 
   while(1) {
 
-    draw (i / max);
+    float value = ((i / max) - 0.5f) * 2.0f;
+
+    draw ( fabsf( (float)sin(value * (PI * 2.0f)) ) );
 
     i++;
 
-    if(i < max)
+    if(i > max)
 
       i = 0.0f;
 
